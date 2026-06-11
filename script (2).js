@@ -1467,23 +1467,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
 /* Paginação automática para PDFs grandes */
 (function(){
   function aplicarPaginacaoPDF(){
-    const paginas = document.querySelectorAll('.print-page');
+    const paginas = document.querySelectorAll('.print-page,.print-body,.print-rows-wrap');
     paginas.forEach(pg=>{
-      pg.style.maxHeight = 'unset';
+      pg.style.height = 'auto';
+      pg.style.maxHeight = 'none';
       pg.style.overflow = 'visible';
     });
 
-    const blocos = document.querySelectorAll('.print-dia,.culto-card,.evento-card,.evento-item');
-    let contador = 0;
+    const linhas = document.querySelectorAll('.print-row');
+    linhas.forEach(linha=>{
+      linha.style.pageBreakInside = 'avoid';
+      linha.style.breakInside = 'avoid';
+    });
 
-    blocos.forEach((b,i)=>{
-      contador++;
-      /* força nova página a cada vários blocos */
-      if(contador >= 8){
-        b.style.pageBreakBefore = 'always';
-        b.style.breakBefore = 'page';
-        contador = 0;
-      }
+    const blocos = document.querySelectorAll('.print-ev-block,.print-musico-chip,.print-hino-chip');
+    blocos.forEach(b=>{
+      b.style.pageBreakInside = 'avoid';
+      b.style.breakInside = 'avoid';
     });
   }
 

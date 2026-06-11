@@ -1154,32 +1154,135 @@ body {
 }
 
 
-/* ===== Melhorias de PDF ===== */
+/* ===== PDF robusto: pagina sem cortar escalas grandes ===== */
 @media print {
-  #print-area,
-  .print-page{
+  @page { size: A4 portrait; margin: 0; }
+
+  html,
+  body {
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 297mm !important;
     overflow: visible !important;
   }
 
-  .print-page{
-    transform: scale(0.95);
-    transform-origin: top center;
+  #print-area {
+    display: block !important;
+    position: static !important;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 297mm !important;
+    overflow: visible !important;
   }
 
-  .musico-badge{
-    font-size: 12px !important;
-    padding: 6px 8px !important;
-    margin: 2px !important;
+  .print-page {
+    display: block !important;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 297mm !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    transform: none !important;
+    background-attachment: local !important;
+  }
+
+  .print-header {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    padding: 12mm 12mm 5mm !important;
+  }
+
+  .print-logo-row img {
+    width: 190px !important;
+    max-width: 190px !important;
+  }
+
+  .print-title-main {
+    font-size: 38px !important;
+  }
+
+  .print-body {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 5mm 9mm 8mm !important;
+    background: rgba(6,15,24,0.62) !important;
+  }
+
+  .print-rows-wrap {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .print-row {
+    display: flex !important;
+    min-height: 0 !important;
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+    border-bottom: 1px solid rgba(255,255,255,0.14) !important;
+  }
+
+  .print-day-col {
+    width: 24mm !important;
+    padding: 4mm 2mm !important;
+  }
+
+  .print-day-num {
+    font-size: 44px !important;
+  }
+
+  .print-content-col {
+    justify-content: flex-start !important;
+    padding: 5mm 7mm !important;
+  }
+
+  .print-ev-block {
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 4mm !important;
+  }
+
+  .print-ev-name {
+    font-size: 22px !important;
+    line-height: 1.1 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .print-musicos-row,
+  .print-hinos-row {
+    gap: 4px !important;
+    align-items: flex-start !important;
+  }
+
+  .print-musico-chip {
+    min-width: 54px !important;
+    max-width: 88px !important;
+    padding: 5px 7px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-musico-name,
+  .print-musico-chip-inst,
+  .print-hino-chip,
+  .musico-name,
+  .musico-inst {
+    overflow: visible !important;
+    text-overflow: unset !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
     white-space: normal !important;
   }
 
-  .musico-name,
-  .musico-inst{
-    overflow: visible !important;
-    text-overflow: unset !important;
+  .print-pregacao {
+    display: block !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
   }
 
-  *{
+  * {
     text-shadow: none !important;
   }
 }
