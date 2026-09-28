@@ -1,89 +1,133 @@
+document.addEventListener('DOMContentLoaded', () => {
+  const conteudo = document.getElementById('instrumentosConteudo');
+  const detalhes = document.getElementById('instrumentosDetalhes');
+  if (!conteudo || !detalhes) return;
 
-document.addEventListener('DOMContentLoaded', ()=>{
- const conteudo=document.getElementById('instrumentosConteudo');
- const detalhes=document.getElementById('instrumentosDetalhes');
- if(!conteudo||!detalhes) return;
-
- function abrirInstrumento(inst){
-   detalhes.innerHTML=`<div class="instrumento-admin">
-   <h3>${inst}</h3>
-   <input id="novoMusicoNome" placeholder="Nome do músico">
-   <button id="addMusicoBtn">Adicionar</button>
-   <div id="listaMusicos"></div></div>`;
-
-   function renderLista(){
-     const db=obterBancoMusicos();
-     const lista=document.getElementById('listaMusicos');
-     lista.innerHTML='';
-     (db[inst]||[]).forEach((m,idx)=>{
-       const row=document.createElement('div');
-       row.className='musico-row';
-       row.innerHTML=`<span>${m.nome}</span>
-       <button class="toggle">${m.ativo?'🟢 Ligado':'🔴 Desligado'}</button>
-       <button class="edit">✏️</button>
-       <button class="del">🗑️</button>`;
-       const btns=row.querySelectorAll('button');
-       btns[0].onclick=()=>{const db=obterBancoMusicos();db[inst][idx].ativo=!db[inst][idx].ativo;salvarBancoMusicos(db);renderLista();};
-       btns[1].onclick=()=>{const nome=prompt('Editar músico',m.nome); if(nome){const db=obterBancoMusicos();db[inst][idx].nome=nome;salvarBancoMusicos(db);renderLista();}};
-       btns[2].onclick=()=>{if(confirm('Excluir músico?')){const db=obterBancoMusicos();db[inst].splice(idx,1);salvarBancoMusicos(db);renderLista();}};
-       lista.appendChild(row);
-     });
-   }
-   renderLista();
-
-   document.getElementById('addMusicoBtn').onclick=()=>{
-      const nome=document.getElementById('novoMusicoNome').value.trim();
-      if(!nome) return;
-      const db=obterBancoMusicos();
-      db[inst]=db[inst]||[];
-      db[inst].push({nome,ativo:true});
-      salvarBancoMusicos(db);
-      document.getElementById('novoMusicoNome').value='';
-      renderLista();
-   };
- }
- setTimeout(()=>{
-   window.renderInstrumentos=function(){
-     const db=obterBancoMusicos();
-     conteudo.innerHTML='';
-     Object.keys(db).forEach(inst=>{
-       const el=document.createElement('div');
-       el.className='instrumento-item';
-       el.innerHTML='<strong>'+inst+'</strong>';
-       el.onclick=()=>abrirInstrumento(inst);
-       conteudo.appendChild(el);
-     });
-   }
- },500);
-});
-
-
-/* Paginação automática para PDFs grandes */
-(function(){
-  function aplicarPaginacaoPDF(){
-    const paginas = document.querySelectorAll('.print-page');
-    paginas.forEach(pg=>{
-      pg.style.maxHeight = 'unset';
-      pg.style.overflow = 'visible';
+  function abrirInstrumento(inst) {
+    // Highlight active item
+    const items = conteudo.querySelectorAll('.instrumento-item');
+    items.forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-inst') === inst);
     });
 
-    const blocos = document.querySelectorAll('.print-dia,.culto-card,.evento-card,.evento-item');
-    let contador = 0;
+    detalhes.innerHTML = `<div class="instrumento-admin">
+      <h3>${inst}</h3>
+      <div class="add-musico-form">
+        <input id="novoMusicoNome" placeholder="Nome do novo músico para ${inst}..." autocomplete="off">
+        <button id="addMusicoBtn">+ Adicionar</button>
+      </div>
+      <div id="listaMusicos"></div>
+    </div>`;
 
-    blocos.forEach((b,i)=>{
-      contador++;
-      /* força nova página a cada vários blocos */
-      if(contador >= 8){
-        b.style.pageBreakBefore = 'always';
-        b.style.breakBefore = 'page';
-        contador = 0;
+    function renderLista() {
+      const db = (typeof obterBancoMusicos === 'function') ? obterBancoMusicos() : {};
+      const lista = document.getElementById('listaMusicos');
+      if (!lista) return;
+      lista.innerHTML = '';
+      const musicos = db[inst] || [];
+      if (musicos.length === 0) {
+        lista.innerHTML = '<div class="empty-state" style="padding:16px 0;"><div class="empty-text">Nenhum músico cadastrado para este instrumento.</div></div>';
+        return;
       }
+      musicos.forEach((m, idx) => {
+        const row = document.createElement('div');
+        row.className = 'musico-row';
+        row.innerHTML = `<span>${m.nome}</span>
+        <div class="musico-row-actions">
+          <button class="toggle ${m.ativo ? 'ativo' : 'inativo'}">${m.ativo ? '🟢 Ativo' : '⚪ Inativo'}</button>
+          <button class="edit" title="Editar nome">✏️</button>
+          <button class="del" title="Excluir">🗑️</button>
+        </div>`;
+        const btns = row.querySelectorAll('button');
+        btns[0].onclick = () => {
+          const db = obterBancoMusicos();
+          db[inst][idx].ativo = !db[inst][idx].ativo;
+          salvarBancoMusicos(db);
+          renderLista();
+          renderInstrumentosTabsOnly();
+          if (typeof renderizar === 'function') renderizar();
+        };
+        btns[1].onclick = () => {
+          const nome = prompt('Editar nome do músico:', m.nome);
+          if (nome && nome.trim()) {
+            const db = obterBancoMusicos();
+            db[inst][idx].nome = nome.trim();
+            salvarBancoMusicos(db);
+            renderLista();
+            if (typeof renderizar === 'function') renderizar();
+          }
+        };
+        btns[2].onclick = () => {
+          if (confirm(`Excluir ${m.nome} de ${inst}?`)) {
+            const db = obterBancoMusicos();
+            db[inst].splice(idx, 1);
+            salvarBancoMusicos(db);
+            renderLista();
+            renderInstrumentosTabsOnly();
+            if (typeof renderizar === 'function') renderizar();
+          }
+        };
+        lista.appendChild(row);
+      });
+    }
+    renderLista();
+
+    const addBtn = document.getElementById('addMusicoBtn');
+    const input = document.getElementById('novoMusicoNome');
+    function adicionar() {
+      const nome = input ? input.value.trim() : '';
+      if (!nome) return;
+      const db = obterBancoMusicos();
+      db[inst] = db[inst] || [];
+      db[inst].push({ nome, ativo: true });
+      salvarBancoMusicos(db);
+      if (input) input.value = '';
+      renderLista();
+      renderInstrumentosTabsOnly();
+      if (typeof renderizar === 'function') renderizar();
+    }
+    if (addBtn) addBtn.onclick = adicionar;
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') adicionar();
+      });
+    }
+  }
+
+  function renderInstrumentosTabsOnly() {
+    const db = (typeof obterBancoMusicos === 'function') ? obterBancoMusicos() : {};
+    const insts = Object.keys(db);
+    const activeItem = conteudo.querySelector('.instrumento-item.active');
+    const activeInst = activeItem ? activeItem.getAttribute('data-inst') : null;
+
+    conteudo.innerHTML = '';
+    insts.forEach((inst) => {
+      const el = document.createElement('div');
+      el.className = 'instrumento-item' + (activeInst === inst ? ' active' : '');
+      el.setAttribute('data-inst', inst);
+      const ativos = (db[inst] || []).filter(m => m.ativo).length;
+      const total = (db[inst] || []).length;
+      el.innerHTML = `<strong>${inst}</strong> <span style="font-size:12px;opacity:.7;">(${ativos}/${total})</span>`;
+      el.onclick = () => abrirInstrumento(inst);
+      conteudo.appendChild(el);
     });
   }
 
-  const oldPrint = window.print;
-  window.print = function(){
-    try{ aplicarPaginacaoPDF(); }catch(e){}
-    return oldPrint ? oldPrint() : undefined;
+  window.renderInstrumentos = function () {
+    const db = (typeof obterBancoMusicos === 'function') ? obterBancoMusicos() : {};
+    conteudo.innerHTML = '';
+    detalhes.innerHTML = '';
+    const insts = Object.keys(db);
+    insts.forEach((inst, i) => {
+      const el = document.createElement('div');
+      el.className = 'instrumento-item' + (i === 0 ? ' active' : '');
+      el.setAttribute('data-inst', inst);
+      const ativos = (db[inst] || []).filter(m => m.ativo).length;
+      const total = (db[inst] || []).length;
+      el.innerHTML = `<strong>${inst}</strong> <span style="font-size:12px;opacity:.7;">(${ativos}/${total})</span>`;
+      el.onclick = () => abrirInstrumento(inst);
+      conteudo.appendChild(el);
+      if (i === 0) abrirInstrumento(inst);
+    });
   };
-})();
+});

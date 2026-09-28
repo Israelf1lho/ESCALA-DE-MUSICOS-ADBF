@@ -92,11 +92,12 @@ const TODOS_DIAS = [
 function DIAS_SEMANA(){ return TODOS_DIAS.filter(d => d.visible); }
 
 const MUSICOS = {
-  "Baixo":    ["Fabio","Jhony","Jadson","Israel","Marco","Cleferson"],
-  "Teclado":  ["Juliana","Ingrid","Jhony","Israel","Fabio"],
-  "Guitarra": ["Israel","Fabio","Jhony"],
-  "Violão":   ["Endrew","Marco","Virginia","Bernardo"],
-  "Bateria":  ["Fernando","Fabio","Jhony","Josimar","Cleferson"]
+  "Baixo":       ["Fabio","Jhony","Jadson","Israel","Marco","Cleferson"],
+  "Teclado":     ["Juliana","Ingrid","Jhony","Israel","Fabio"],
+  "Guitarra":    ["Israel","Fabio","Jhony"],
+  "Violão":      ["Endrew","Marco","Virginia","Bernardo"],
+  "Bateria":     ["Fernando","Fabio","Jhony","Josimar","Cleferson"],
+  "Mesa de Som": ["Davi","Israel","Endrew"]
 };
 const MUSICOS_FESTIVIDADES = JSON.parse(localStorage.getItem("musicosFestividades")||'["Cleferson","Fabio","Israel","Fernando","Josimar","Jhony","Juliana","Jadson"]');
 
@@ -105,11 +106,12 @@ const PREGADORES_POOL = [
   "Ev. Ricardo Lima","Pb. Antônio Neto","Pr. Josué Ferreira","Ev. Daniel Alves","A CRITÉRIO"
 ];
 const INST_CFG = {
-  "Baixo":    { dot:"#a78bfa", color:"#a78bfa", icon:"🎸" },
-  "Teclado":  { dot:"#00c896", color:"#00c896", icon:"🎹" },
-  "Guitarra": { dot:"#fb923c", color:"#fb923c", icon:"🎸" },
-  "Violão":   { dot:"#38bdf8", color:"#38bdf8", icon:"🎻" },
-  "Bateria":  { dot:"#f472b6", color:"#f472b6", icon:"🥁" }
+  "Baixo":       { dot:"#a78bfa", color:"#a78bfa", icon:"🎸" },
+  "Teclado":     { dot:"#00c896", color:"#00c896", icon:"🎹" },
+  "Guitarra":    { dot:"#fb923c", color:"#fb923c", icon:"🎸" },
+  "Violão":      { dot:"#38bdf8", color:"#38bdf8", icon:"🎻" },
+  "Bateria":     { dot:"#f472b6", color:"#f472b6", icon:"🥁" },
+  "Mesa de Som": { dot:"#eab308", color:"#eab308", icon:"🎚️" }
 };
 
 let escalaMusica = {};
@@ -125,8 +127,8 @@ function rnd(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function rndFestividade(){ return rnd(MUSICOS_FESTIVIDADES); }
 
 const INSTRUMENTOS_FESTIVIDADE = ["Baixo","Teclado","Guitarra","Guitarra 2","Violão","Bateria"];
-const CORES_INSTRUMENTOS = {"Baixo":"#a78bfa","Teclado":"#00c896","Guitarra":"#fb923c","Guitarra 2":"#fb923c","Violão":"#38bdf8","Bateria":"#f472b6","Vocal":"#f5c518"};
-const ICONES_INSTRUMENTOS = {"Baixo":"🎸","Teclado":"🎹","Guitarra":"🎸","Guitarra 2":"🎸","Violão":"🎻","Bateria":"🥁","Vocal":"🎤"};
+const CORES_INSTRUMENTOS = {"Baixo":"#a78bfa","Teclado":"#00c896","Guitarra":"#fb923c","Guitarra 2":"#fb923c","Violão":"#38bdf8","Bateria":"#f472b6","Vocal":"#f5c518","Mesa de Som":"#eab308"};
+const ICONES_INSTRUMENTOS = {"Baixo":"🎸","Teclado":"🎹","Guitarra":"🎸","Guitarra 2":"🎸","Violão":"🎻","Bateria":"🥁","Vocal":"🎤","Mesa de Som":"🎚️"};
 
 function candidatosFestividadeInstrumento(inst, usados){
   const dbMusicos = (typeof obterBancoMusicos === 'function') ? obterBancoMusicos() : {};
@@ -182,32 +184,55 @@ function eventoUsaFestividade(dia, ev){
   return ev.festividade !== undefined ? !!ev.festividade : !!dia.festividade;
 }
 
-function renderMusicosBadges(escala, opts = {}){
+function contarVezesMusicoNaSemana(nomeAlvo, diaIdLimite = null) {
+  let count = 0;
+  const dias = TODOS_DIAS.filter(d => d.visible && d.eventos.length > 0);
+  for (const dia of dias) {
+    dia.eventos.forEach((ev, idx) => {
+      const key = eventoKey(dia.id, idx);
+      const escalaEv = escalaMusicaEvento[key] || (idx === 0 ? escalaMusica[dia.id] : null);
+      if (escalaEv) {
+        Object.values(escalaEv).forEach(nome => {
+          if (nome === nomeAlvo) count++;
+        });
+      }
+    });
+    if (diaIdLimite && dia.id === diaIdLimite) break;
+  }
+  return count;
+}
+
+function renderMusicosBadges(escala, opts = {}) {
   let html = opts.wrapperClass ? `<div class="${opts.wrapperClass}">` : "";
-  if(opts.titulo){
+  if (opts.titulo) {
     html += `<div class="festividade-label">${opts.titulo}</div>`;
   }
   html += `<div class="musicos-section">`;
+  let badgeIdx = 0;
   Object.entries(escala).forEach(([inst, nome]) => {
-    const cor  = CORES_INSTRUMENTOS[inst] || "#aaa";
-    const ico  = ICONES_INSTRUMENTOS[inst] || "🎵";
+    const cor   = CORES_INSTRUMENTOS[inst] || "#aaa";
+    const ico   = ICONES_INSTRUMENTOS[inst] || "🎵";
     const click = opts.onclick ? ` onclick="${opts.onclick(inst)}"` : "";
     const title = opts.title ? ` title="${opts.title}"` : "";
-    html += `<span class="musico-badge inst-${inst.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-")}"${click}${title}>
+    const cls   = `inst-${inst.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-")}`;
+    const delay = `style="--i:${badgeIdx}"`;
+    html += `<span class="musico-badge ${cls}"${click}${title} ${delay}>
       <span class="musico-icon">${ico}</span>
-      <span class="musico-name">${nome}</span>
       <span class="musico-inst" style="color:${cor}">${inst}</span>
+      <span class="musico-name">${nome}</span>
       ${opts.extra ? opts.extra(inst, nome) : ""}
     </span>`;
+    badgeIdx++;
   });
-  // Card fixo adicional
-  html += `<span class="musico-badge inst-teclado">
+  // Card fixo adicional: Juliana Teclado Fixo
+  html += `<span class="musico-badge inst-teclado" title="Teclado Fixo" style="--i:${badgeIdx}">
       <span class="musico-icon">🎹</span>
+      <span class="musico-inst" style="color:#00c896">Teclado</span>
       <span class="musico-name">Juliana</span>
-      <span class="musico-inst" style="color:#00c896">Teclado Fixo</span>
+      <span class="musico-vez fixo">FIXO</span>
     </span>`;
   html += `</div>`;
-  if(opts.wrapperClass) html += `</div>`;
+  if (opts.wrapperClass) html += `</div>`;
   return html;
 }
 
@@ -271,9 +296,18 @@ function sortearMusico(inst, posicao, isDomingo, usadosHoje, historicoAnterior, 
     todos=MUSICOS[inst]||[];
   }
 
-  // Domingo: completamente aleatório, mas evita a mesma pessoa em dois instrumentos no mesmo culto
+  // Domingo: mata-mata, mas evita duplicatas e garante Israel na guitarra
   if(isDomingo){
-    const candidatosDom = todos.filter(n => !usadosHoje.has(n));
+    let candidatosDom = todos.filter(n => !usadosHoje.has(n));
+    // Regra: Israel tem que cair no domingo na guitarra
+    if(inst === "Guitarra" && candidatosDom.includes("Israel")){
+      return "Israel";
+    }
+    // Nos outros instrumentos no domingo, preserva Israel para a guitarra
+    if(inst !== "Guitarra"){
+      const semIsrael = candidatosDom.filter(n => n !== "Israel");
+      if(semIsrael.length) candidatosDom = semIsrael;
+    }
     return rnd(candidatosDom.length ? candidatosDom : todos);
   }
 
@@ -363,14 +397,18 @@ function gerarEscala(){
 
     const usadosHoje = new Set();
 
-    // Sortear cada instrumento (em ordem aleatória para evitar bias)
-    Object.keys(MUSICOS)
-      .sort(() => Math.random() - 0.5)
-      .forEach(inst => {
-        const escolhido = sortearMusico(inst, idx, isDomingo, usadosHoje, historicoAnterior, dia.id);
-        escalaMusicaEvento[item.key][inst] = escolhido;
-        usadosHoje.add(escolhido);
-      });
+    // Sortear primeiro os instrumentos da banda e depois a Mesa de Som.
+    // Assim, se Israel ou Endrew caírem em outro instrumento no mesmo dia,
+    // já estarão em usadosHoje e NÃO serão opção para a Mesa de Som.
+    const instsBanda = Object.keys(MUSICOS).filter(i => i !== "Mesa de Som").sort(() => Math.random() - 0.5);
+    const ordemSorteio = [...instsBanda];
+    if(MUSICOS["Mesa de Som"]) ordemSorteio.push("Mesa de Som");
+
+    ordemSorteio.forEach(inst => {
+      const escolhido = sortearMusico(inst, idx, isDomingo, usadosHoje, historicoAnterior, dia.id);
+      escalaMusicaEvento[item.key][inst] = escolhido;
+      usadosHoje.add(escolhido);
+    });
 
     if(!escalaMusica[dia.id]){
       escalaMusica[dia.id] = escalaMusicaEvento[item.key];
@@ -394,9 +432,79 @@ function gerarEscala(){
  * Recalcula a escala apenas dos cultos a partir de um índice,
  * preservando os cultos anteriores (chamado quando um evento
  * extra é inserido no meio da semana).
+ * Agora usa completarEscalaFaltante() para ser não-destrutivo.
  */
 function recalcularAPartirDe(diaId){
-  gerarEscala();
+  completarEscalaFaltante();
+  salvarEstadoAtualEscala();
+}
+
+/**
+ * Percorre todos os eventos da semana em ordem cronológica.
+ * Para cada evento que usa músicos:
+ *   - Se já tem atribuição em escalaMusicaEvento → preserva.
+ *   - Se NÃO tem atribuição → sorteia músicos agora.
+ * Isso corrige o bug onde salvar uma edição re-sorteava tudo.
+ */
+function completarEscalaFaltante(){
+  const eventosCulto = [];
+  TODOS_DIAS.forEach(dia => {
+    dia.eventos.forEach((ev, eventoIdx) => {
+      if(eventoUsaMusicos(dia, ev)){
+        eventosCulto.push({ dia, ev, eventoIdx, key: eventoKey(dia.id, eventoIdx) });
+      }
+    });
+  });
+
+  eventosCulto.forEach((item, idx) => {
+    const dia = item.dia;
+    const jaTemEscala = escalaMusicaEvento[item.key] &&
+                        Object.keys(escalaMusicaEvento[item.key]).length > 0;
+
+    if(jaTemEscala){
+      // Já sorteado — apenas garante que escalaMusica[dia.id] existe
+      if(!escalaMusica[dia.id]){
+        escalaMusica[dia.id] = escalaMusicaEvento[item.key];
+      }
+      return; // Não alterar o que já existe
+    }
+
+    // Evento sem atribuição → sortear agora
+    const isDomingo = dia.id === "dom";
+    const historicoAnterior = eventosCulto
+      .slice(0, idx)
+      .map(e => escalaMusicaEvento[e.key] || null);
+
+    const usadosHoje = new Set();
+    escalaMusicaEvento[item.key] = {};
+
+    const instsBanda = Object.keys(MUSICOS).filter(i => i !== "Mesa de Som").sort(() => Math.random() - 0.5);
+    const ordemSorteio = [...instsBanda];
+    if(MUSICOS["Mesa de Som"]) ordemSorteio.push("Mesa de Som");
+
+    ordemSorteio.forEach(inst => {
+      const escolhido = sortearMusico(inst, idx, isDomingo, usadosHoje, historicoAnterior, dia.id);
+      escalaMusicaEvento[item.key][inst] = escolhido;
+      usadosHoje.add(escolhido);
+    });
+
+    if(!escalaMusica[dia.id]){
+      escalaMusica[dia.id] = escalaMusicaEvento[item.key];
+    }
+  });
+
+  // Atualiza festividades e pregações sem resetar escala
+  atualizarEscalaFestividade();
+
+  TODOS_DIAS.forEach(dia => {
+    dia.eventos.forEach((ev, i) => {
+      const key = dia.id + "-" + i;
+      if(!pregacaoRnd[key]) pregacaoRnd[key] = ev.pregacao || "";
+    });
+  });
+
+  renderizar();
+  atualizarDataBadge();
 }
 
 const MESES = ["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
@@ -405,13 +513,12 @@ const DIAS_NOME = ["domingo","segunda-feira","terça-feira","quarta-feira","quin
 function atualizarDataBadge(){
   const hoje = new Date();
   const mes = MESES[hoje.getMonth()];
-  const ano = hoje.getFullYear();
-  const label = document.getElementById("mes-label");
-  if(label) label.textContent = mes + " " + ano;
-  const badge = document.getElementById("data-badge");
-  if(badge) badge.innerHTML = `📅 ${formatarIntervaloSemana()} DE ${mes.toUpperCase()}`;
-  const badgeMobile = document.getElementById("data-badge-mobile");
-  if(badgeMobile) badgeMobile.innerHTML = `📅 ${formatarIntervaloSemana()} DE ${mes.toUpperCase()}`;
+  const lbl = document.getElementById("mes-label");
+  if(lbl) lbl.textContent = mes;
+  const db = document.getElementById("data-badge");
+  if(db) db.textContent = `📅 ${formatarIntervaloSemana()} DE ${mes}`;
+  const dbm = document.getElementById("data-badge-mobile");
+  if(dbm) dbm.textContent = `📅 ${formatarIntervaloSemana()} DE ${mes}`;
 }
 
 function formatarIntervaloSemana(){
@@ -423,6 +530,16 @@ function formatarIntervaloSemana(){
 /* ============================================================
    RENDERIZAR — CARDS WEB/MOBILE
 ============================================================ */
+
+function obterIconeCulto(nome) {
+  const n = (nome || "").toUpperCase();
+  if (n.includes("ORAÇÃO") || n.includes("CIRCULO")) return "🙏";
+  if (n.includes("EVANGEL") || n.includes("MISSÕES")) return "⛪";
+  if (n.includes("DOUTRINA") || n.includes("BÍBLICA") || n.includes("EBD")) return "📖";
+  if (n.includes("DEFAD") || n.includes("DEJAD") || n.includes("FAMÍLIA") || n.includes("JOVENS")) return "👥";
+  return "⛪";
+}
+
 function renderizar(){
   const hojeId = getDiaSemanaHoje();
   const rows   = document.getElementById("rows");
@@ -437,7 +554,9 @@ function renderizar(){
     // Build card
     const card = document.createElement("div");
     card.className = "day-card" + (vazio ? " vazio" : "") + (ehHoje ? " hoje" : "");
-    card.style.animationDelay = (animIdx * 60) + "ms";
+    card.style.setProperty("--card-accent", dia.accent);
+    card.style.setProperty("--card-idx", animIdx);
+    card.style.animationDelay = (animIdx * 80) + "ms";
 
     // Day column
     const accentRgb = hexToRgb(dia.accent);
@@ -472,10 +591,20 @@ function renderizar(){
             title: "Clique para trocar o músico",
             onclick: (inst) => `abrirModalSubstituicao('${dia.id}', '${inst}')`,
             extra: (inst, nome) => {
-              const n = 0;
-              const priorColor = dia.id === "dom" ? "#8ab4c8" : "#00d4aa";
-              const priorLabel = dia.id === "dom" ? "MATA-MATA" : `${n+1}ª VEZ`;
-              return `<span class="musico-vez" style="color:${priorColor}">${priorLabel}</span>`;
+              if (dia.id === "dom") {
+                if (inst === "Guitarra" && nome === "Israel") {
+                  return `<span class="musico-vez" style="color:#00d4aa;border-color:#00d4aa">DOMINGO FIXO</span>`;
+                }
+                return `<span class="musico-vez" style="color:#8ab4c8;border-color:#8ab4c8">MATA-MATA</span>`;
+              }
+              const n = contarVezesMusicoNaSemana(nome, dia.id);
+              if (n <= 1) {
+                return `<span class="musico-vez" style="color:#00d4aa;border-color:#00d4aa">1ª VEZ</span>`;
+              } else if (n === 2) {
+                return `<span class="musico-vez" style="color:#f5c518;border-color:#f5c518">2ª VEZ</span>`;
+              } else {
+                return `<span class="musico-vez" style="color:#fb923c;border-color:#fb923c">${n}ª VEZ</span>`;
+              }
             }
           });
         }
@@ -499,7 +628,6 @@ function renderizar(){
     card.innerHTML = `<div class="card-inner">${dayCol}<div class="card-body">${body}</div></div>`;
     rows.appendChild(card);
   });
-
 }
 
 function hexToRgb(hex){
@@ -597,15 +725,26 @@ function abrirModalSubstituicao(diaId, inst) {
   overlay.className = "modal-subst-overlay";
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
-  const todos = musicosAtivos.filter(n => n !== atual);
+  // Músicos escalados em outros instrumentos neste mesmo dia (não são opção)
+  const escalaDia = escalaMusica[diaId] || {};
+  const usadosOutros = new Set(
+    Object.entries(escalaDia)
+      .filter(([i, _]) => i !== inst)
+      .map(([_, n]) => n)
+  );
+
+  const todos = musicosAtivos.filter(n => n !== atual && !usadosOutros.has(n));
   const listaHtml = todos.length === 0
-    ? `<div class="modal-subst-vazio">Nenhum outro músico ativo cadastrado para ${inst}.</div>`
-    : todos.map(nome =>
-        `<button class="modal-subst-item" onclick="escolherMusico('${diaId}','${inst}','${nome.replace(/'/g,"\\'")}')">
+    ? `<div class="modal-subst-vazio">Nenhum outro músico disponível para ${inst} (os demais já estão escalados hoje).</div>`
+    : todos.map(nome => {
+        const vezes = typeof contarVezesMusicoNaSemana === 'function' ? contarVezesMusicoNaSemana(nome) : 0;
+        const tag = vezes === 0 ? '0x na semana' : (vezes === 1 ? '1x na semana' : `${vezes}x na semana`);
+        return `<button class="modal-subst-item" onclick="escolherMusico('${diaId}','${inst}','${nome.replace(/'/g,"\\'")}')">
           <span class="modal-subst-icon">${ico}</span>
           <span class="modal-subst-nome">${nome}</span>
-        </button>`
-      ).join("");
+          <span class="musico-vez" style="color:var(--muted);font-size:10px">${tag}</span>
+        </button>`;
+      }).join("");
 
   overlay.innerHTML = `
     <div class="modal-subst-box">
@@ -891,15 +1030,11 @@ function salvarDiaDrawer(){
     dia.visible = dia.eventos.length > 0;
   }
 
-  // Se o dia recém-salvo é um dia extra (ter, qui, sab) com músicos habilitados,
-  // recalcula apenas deste dia em diante, preservando os cultos anteriores já sorteados.
-  // Para os dias fixos, regenera tudo normalmente.
-  const diasFixos = ["seg","qua","sex","dom"];
-  if(!diasFixos.includes(dia.id) && dia.culto && dia.eventos.length > 0){
-    recalcularAPartirDe(dia.id);
-  } else {
-    gerarEscala();
-  }
+  // CORREÇÃO DO BUG: nunca re-sortear a escala ao editar.
+  // Apenas preenche eventos que ainda não têm músicos atribuídos
+  // e re-renderiza sem tocar nos sorteios já existentes.
+  completarEscalaFaltante();
+  salvarEstadoAtualEscala();
   const tab = document.getElementById("tab-" + dia.id);
   if(tab){
     tab.className = "day-tab" +
@@ -1338,96 +1473,42 @@ function renderEventoFestividadeCards(dia){
 
 
 document.addEventListener('DOMContentLoaded', ()=>{
- const btnInst = document.getElementById('btnInstrumentos');
- const modalInst = document.getElementById('instrumentosModal');
- const fecharInst = document.getElementById('fecharInstrumentos');
- const conteudoInst = document.getElementById('instrumentosConteudo');
+  const btnInst = document.getElementById('btnInstrumentos');
+  const modalInst = document.getElementById('instrumentosModal');
+  const fecharInst = document.getElementById('fecharInstrumentos');
 
- function carregarInstrumentos(){
-   if(!conteudoInst) return;
-   conteudoInst.innerHTML='';
+  btnInst?.addEventListener('click', ()=>{
+    if(typeof window.renderInstrumentos === 'function'){
+      window.renderInstrumentos();
+    }
+    if(modalInst) modalInst.style.display = 'block';
+  });
 
-   const instrumentos = {};
-   const musicos = JSON.parse(localStorage.getItem('musicos') || '[]');
-
-   musicos.forEach(m=>{
-      const inst = m.instrumento || 'Sem Instrumento';
-      if(!instrumentos[inst]) instrumentos[inst]=[];
-      instrumentos[inst].push(m.nome || m.name || 'Músico');
-   });
-
-   Object.keys(instrumentos).sort().forEach(inst=>{
-      const div = document.createElement('div');
-      div.className='instrumento-item';
-      div.innerHTML='<strong>'+inst+'</strong>';
-
-      div.onclick=()=>{
-        const lista = document.createElement('div');
-        lista.className='instrumento-musicos';
-        lista.innerHTML = instrumentos[inst].map(n=>'• '+n).join('<br>');
-        div.querySelector('.instrumento-musicos')?.remove();
-        div.appendChild(lista);
-      };
-
-      conteudoInst.appendChild(div);
-   });
- }
-
- btnInst?.addEventListener('click', ()=>{
-   carregarInstrumentos();
-   modalInst.style.display='block';
- });
-
- fecharInst?.addEventListener('click', ()=>{
-   modalInst.style.display='none';
- });
-});
-
-
-document.addEventListener('DOMContentLoaded', ()=>{
- const btnInst=document.getElementById('btnInstrumentos');
- const modal=document.getElementById('instrumentosModal');
- const fechar=document.getElementById('fecharInstrumentos');
- const conteudo=document.getElementById('instrumentosConteudo');
-
- function renderInstrumentos(){
-   if(!conteudo || typeof MUSICOS==='undefined') return;
-   conteudo.innerHTML='';
-
-   Object.keys(MUSICOS).forEach(inst=>{
-      const card=document.createElement('div');
-      card.className='instrumento-item';
-      card.innerHTML='<strong>'+inst+'</strong>';
-
-      card.onclick=()=>{
-        const aberto=card.querySelector('.instrumento-musicos');
-        if(aberto){aberto.remove();return;}
-
-        const lista=document.createElement('div');
-        lista.className='instrumento-musicos';
-        lista.innerHTML=MUSICOS[inst].map(m=>'• '+m).join('<br>');
-        card.appendChild(lista);
-      };
-
-      conteudo.appendChild(card);
-   });
- }
-
- btnInst?.addEventListener('click', ()=>{
-    renderInstrumentos();
-    modal.style.display='block';
- });
-
- fechar?.addEventListener('click', ()=>{
-    modal.style.display='none';
- });
+  fecharInst?.addEventListener('click', ()=>{
+    if(modalInst) modalInst.style.display = 'none';
+  });
 });
 
 
 /* ===== Banco permanente de músicos por instrumento ===== */
 function obterBancoMusicos(){
   const salvo = localStorage.getItem('MUSICOS_DB');
-  if(salvo) return JSON.parse(salvo);
+  if(salvo) {
+    try {
+      const db = JSON.parse(salvo);
+      let alterou = false;
+      Object.keys(MUSICOS).forEach(inst => {
+        if(!db[inst] || !Array.isArray(db[inst])){
+          db[inst] = MUSICOS[inst].map(n=>({nome:n, ativo:true}));
+          alterou = true;
+        }
+      });
+      if(alterou){
+        salvarBancoMusicos(db);
+      }
+      return db;
+    } catch(e){}
+  }
 
   const banco = {};
   Object.keys(MUSICOS).forEach(inst=>{
@@ -1440,19 +1521,6 @@ function obterBancoMusicos(){
 function salvarBancoMusicos(db){
   localStorage.setItem('MUSICOS_DB', JSON.stringify(db));
 }
-
-
-/* Integração final da tela Instrumentos com banco permanente */
-document.addEventListener('DOMContentLoaded', ()=>{
- const btn=document.getElementById('btnInstrumentos');
- if(btn){
-   btn.addEventListener('click', ()=>{
-      if(typeof window.renderInstrumentos==='function'){
-         setTimeout(()=>window.renderInstrumentos(),50);
-      }
-   });
- }
-});
 
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(()=>{
@@ -1493,3 +1561,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
     return oldPrint ? oldPrint() : undefined;
   };
 })();
+
+
+/* ===== Funções Globais de Modais ===== */
+function abrirInstrumentos(){
+  if(typeof window.renderInstrumentos === 'function'){
+    window.renderInstrumentos();
+  }
+  const modalInst = document.getElementById('instrumentosModal');
+  if(modalInst) modalInst.style.display = 'block';
+}
+
+function fecharInstrumentos(){
+  const modalInst = document.getElementById('instrumentosModal');
+  if(modalInst) modalInst.style.display = 'none';
+}
+
+function fecharHistorico(){
+  const m = document.getElementById('historicoModal');
+  if(m) m.style.display = 'none';
+}
